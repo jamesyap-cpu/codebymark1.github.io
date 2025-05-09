@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ghost Trap Game</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #111; color: white; font-family: sans-serif; }
+
+    /* Background Gradient */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 1));
+      z-index: -1;
+    }
+
+    canvas { display: block; background: #222; margin: 0 auto; display: none; }
+    #timer { position: absolute; top: 10px; left: 10px; font-size: 20px; display: none; }
+
+    /* Character Selection */
+    #characterSelection {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    .character {
+      margin: 20px;
+      cursor: pointer;
+      border: 3px solid transparent;
+      border-radius: 50%;
+      transition: transform 0.2s ease-in-out, border-color 0.2s ease;
+    }
+
+    .character:hover {
+      transform: scale(1.2);
+      border-color: #fff;
+    }
+
+    .character img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .character img:hover {
+      transform: scale(1.1);
+    }
+
+    #chooseText {
+      font-size: 28px;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    /* Game Over Screen */
+    #gameOverScreen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    #gameOverScreen h1 {
+      font-size: 48px;
+      text-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+    }
+
+    #gameOverScreen p {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    #gameOverScreen button {
+      margin: 10px;
+      padding: 12px 24px;
+      font-size: 18px;
+      cursor: pointer;
+      background-color: #444;
+      border: 2px solid #fff;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+
+    #gameOverScreen button:hover {
+      background-color: #333;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    /* Wall Styling */
+    .wall {
+      background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5));
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+      border-radius: 5px;
+      transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+    }
+
+    .wall:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <div id="timer">Survive Time: 0s</div>
+  <div id="characterSelection">
+    <div id="chooseText">Choose Your Character</div>
+    <div>
+      <div class="character" onclick="selectCharacter('../sheena.jfif')">
+        <img src="../sheena.jfif" alt="Sheena">
+      </div>
+      <div class="character" onclick="selectCharacter('../Trisha.jpg')">
+        <img src="../Trisha.jpg" alt="Trisha">
+      </div>
+    </div>
+
+    <!-- Custom Image Upload -->
+    <input type="file" id="characterUpload" accept="image/*" onchange="uploadCharacter()" style="margin-top: 20px;">
+    <label for="characterUpload" style="color: white; margin-top: 10px; font-size: 18px;">Upload Your Own Character</label>
+  </div>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen">
+    <h1>Game Over!</h1>
+    <p>You were caught by the ghost!</p>
+    <button onclick="location.reload()">Play Again</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const player = { x: 100, y: 100, size: 20, speed: 4 };
+    const ghost = { x: 400, y: 300, size: 30, speed: 2 };
+    const walls = [
+      { x: 200, y: 100, width: 400, height: 20 },
+      { x: 100, y: 300, width: 20, height: 200 },
+      { x: 600, y: 200, width: 20, height: 300 },
+      { x: 300, y: 450, width: 250, height: 20 }
+    ];
+
+    let keys = {};
+    let gameOver = false;
+    let startTime;
+    let imagesLoaded = 0;
+    let wallTimer = 0; // Timer for adding walls
+    let wallInterval = 10000; // 10 seconds interval
+
+    const ghostImg = new Image();
+    ghostImg.src = "../khent.jpg";
+
+    const playerImg = new Image();
+
+    // Ghost phrases
+    const ghostPhrases = [
+      "I'm coming for you!",
+      "You can't escape!",
+      "You're mine!",
+      "No place to hide!",
+      "I see you!",
+      "You're already lost!",
+      "Nowhere to run!",
+      "There's no way out!"
+    ];
+
+    let currentPhrase = "";
+    let phraseTimer = 0;
+
+    document.addEventListener("keydown", (e) => keys[e.key] = true);
+    document.addEventListener("keyup", (e) => keys[e.key] = false);
+
+    function isCollidingWithWalls(x, y, size) {
+      for (const wall of walls) {
+        if (
+          x + size > wall.x &&
+          x - size < wall.x + wall.width &&
+          y + size > wall.y &&
+          y - size < wall.y + wall.height
+        ) return true;
+      }
+      return false;
+    }
+
+    function movePlayer() {
+      let nextX = player.x;
+      let nextY = player.y;
+
+      if (keys["ArrowUp"]) nextY -= player.speed;
+      if (keys["ArrowDown"]) nextY += player.speed;
+      if (keys["ArrowLeft"]) nextX -= player.speed;
+      if (keys["ArrowRight"]) nextX += player.speed;
+
+      if (!isCollidingWithWalls(nextX, player.y, player.size)) player.x = nextX;
+      if (!isCollidingWithWalls(player.x, nextY, player.size)) player.y = nextY;
+    }
+
+    function moveGhost() {
+      const dx = player.x - ghost.x;
+      const dy = player.y - ghost.y;
+      const dist = Math.hypot(dx, dy);
+
+      // Update ghost speed based on how long the player has survived
+      const timeSurvived = (Date.now() - startTime) / 1000; // in seconds
+      ghost.speed = 2 + timeSurvived * 0.05; // base speed + increase over time
+
+      if (dist > 0) {
+        ghost.x += (dx / dist) * ghost.speed;
+        ghost.y += (dy / dist) * ghost.speed;
+      }
+
+      // Random phrase change every 3 seconds (180 frames at 60fps)
+      phraseTimer++;
+      if (phraseTimer > 180) {
+        currentPhrase = ghostPhrases[Math.floor(Math.random() * ghostPhrases.length)];
+        phraseTimer = 0;
+      }
+    }
+
+    function checkCollision() {
+      const dx = player.x - ghost.x;
+      const dy = player.y - ghost.y;
+      const distance = Math.hypot(dx, dy);
+      return distance < player.size + ghost.size;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw walls with enhanced styling
+      ctx.fillStyle = "#444";
+      for (const wall of walls) {
+        ctx.save();
+        ctx.shadowColor = "#aaa";
+        ctx.shadowBlur = 10;
+        ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+        ctx.restore();
+      }
+
+      // Draw player
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.shadowColor = "white";
+      ctx.shadowBlur = 15;
+      ctx.drawImage(playerImg, player.x - player.size, player.y - player.size, player.size * 2, player.size * 2);
+      ctx.restore();
+
+      // Draw ghost
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ghost.x, ghost.y, ghost.size, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.shadowColor = "red";
+      ctx.shadowBlur = 30;
+      ctx.drawImage(ghostImg, ghost.x - ghost.size, ghost.y - ghost.size, ghost.size * 2, ghost.size * 2);
+      ctx.restore();
+
+      // Draw ghost speech
+      if (currentPhrase) {
+        ctx.font = "18px Arial";
+        ctx.fillStyle = "#ff0";
+        ctx.fillText(currentPhrase, ghost.x, ghost.y - ghost.size - 10);
+      }
+
+      // Draw timer
+      const timeSurvived = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById("timer").innerText = `Survive Time: ${timeSurvived}s`;
+    }
+
+    function gameLoop() {
+      if (gameOver) return;
+
+      movePlayer();
+      moveGhost();
+
+      // Add walls every 10 seconds
+      const timeElapsed = Date.now() - startTime;
+      if (timeElapsed > wallTimer) {
+        wallTimer = timeElapsed + wallInterval; // reset the timer
+        addWall(); // Add a new wall
+      }
+
+      if (checkCollision()) {
+        gameOver = true;
+        document.getElementById("gameOverScreen").style.display = "flex";
+        return;
+      }
+
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function addWall() {
+      const randomX = Math.random() * (canvas.width - 100);
+      const randomY = Math.random() * (canvas.height - 100);
+      const randomWidth = 50 + Math.random() * 200; // width between 50 and 250
+      const randomHeight = 20 + Math.random() * 100; // height between 20 and 100
+
+      walls.push({
+        x: randomX,
+        y: randomY,
+        width: randomWidth,
+        height: randomHeight
+      });
+    }
+
+    function tryStartGame() {
+      imagesLoaded++;
+      if (imagesLoaded === 2) {
+        document.getElementById("characterSelection").style.display = "none";
+        document.getElementById("timer").style.display = "block";
+        canvas.style.display = "block";
+        startTime = Date.now();
+        gameLoop();
+      }
+    }
+
+    function selectCharacter(path) {
+      playerImg.src = path;
+      playerImg.onload = tryStartGame;
+      ghostImg.onload = tryStartGame;
+    }
+
+    function uploadCharacter() {
+      const fileInput = document.getElementById("characterUpload");
+      const file = fileInput.files[0];
+      
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          playerImg.src = e.target.result;
+          playerImg.onload = tryStartGame;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+    // Dynamic wall color
+const t = Math.floor((Date.now() - startTime) / 1000);
+const hue = (t * 10) % 360;
+ctx.fillStyle = `hsl(${hue}, 60%, 40%)`;
+
+  </script>
+</body>
+</html>

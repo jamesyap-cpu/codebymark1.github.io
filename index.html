@@ -159,8 +159,8 @@
         }
 
         .mobile-control-btn {
-            width: 70px;
-            height: 70px;
+            width: 60px;
+            height: 60px;
             background-color: #444;
             border-radius: 50%;
             display: flex;
@@ -337,10 +337,10 @@
                 ctx.restore();
             }
 
-            // Draw player
+            // Draw player (now a circle)
             ctx.drawImage(playerImg, player.x - player.size, player.y - player.size, player.size * 2, player.size * 2);
 
-            // Draw ghost
+            // Draw ghost (now a circle)
             ctx.drawImage(ghostImg, ghost.x - ghost.size, ghost.y - ghost.size, ghost.size * 2, ghost.size * 2);
 
             // Check for collision with the ghost

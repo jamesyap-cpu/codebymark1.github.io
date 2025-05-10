@@ -1,375 +1,391 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Ghost Trap Game</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: #111;
-            color: white;
-            font-family: sans-serif;
-        }
+  <meta charset="UTF-8">
+  <title>Ghost Trap Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-        body::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 1));
-            z-index: -1;
-        }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, #1b1b1b 0%, #0d0d0d 100%);
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+    }
 
-        canvas {
-            display: block;
-            background: #222;
-            margin: 0 auto;
-        }
+    canvas {
+      display: block;
+      margin: auto;
+      background: #111;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    }
 
-        #timer {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 20px;
-            display: none;
-        }
+    #timer {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #0ff;
+      text-shadow: 0 0 5px #0ff;
+    }
 
-        #characterSelection {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            animation: fadeIn 1s ease-in-out;
-        }
+    #characterSelection, #gameOverScreen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      animation: fadeIn 1s ease-in-out;
+    }
 
-        .character {
-            margin: 20px;
-            cursor: pointer;
-            border: 3px solid transparent;
-            border-radius: 50%;
-            transition: transform 0.2s ease-in-out, border-color 0.2s ease;
-        }
+    #chooseText {
+      font-size: 32px;
+      margin-bottom: 20px;
+      color: #0ff;
+    }
 
-        .character:hover {
-            transform: scale(1.2);
-            border-color: #fff;
-        }
+    .character {
+      margin: 10px;
+      cursor: pointer;
+      border: 4px solid transparent;
+      border-radius: 50%;
+      transition: all 0.3s ease-in-out;
+    }
 
-        .character img {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 3px solid #fff;
-            transition: transform 0.3s ease-in-out;
-        }
+    .character img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 3px solid #0ff;
+      transition: transform 0.2s ease-in-out;
+    }
 
-        .character img:hover {
-            transform: scale(1.1);
-        }
+    .character:hover img {
+      transform: scale(1.1);
+      border-color: #fff;
+    }
 
-        #chooseText {
-            font-size: 28px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        }
+    #gameOverScreen {
+      display: none;
+      flex-direction: column;
+      color: white;
+      text-align: center;
+    }
 
-        #gameOverScreen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 20;
-            animation: fadeIn 1s ease-in-out;
-        }
+    #gameOverScreen h1 {
+      font-size: 48px;
+      color: red;
+      text-shadow: 0 0 20px red;
+    }
 
-        #gameOverScreen h1 {
-            font-size: 48px;
-            text-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
-        }
+    #gameOverScreen p {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
 
-        #gameOverScreen p {
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
+    #gameOverScreen button {
+      padding: 12px 24px;
+      font-size: 18px;
+      background-color: #0ff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #000;
+      transition: background-color 0.3s;
+    }
 
-        #gameOverScreen button {
-            margin: 10px;
-            padding: 12px 24px;
-            font-size: 18px;
-            cursor: pointer;
-            background-color: #444;
-            border: 2px solid #fff;
-            color: white;
-            transition: background-color 0.3s ease;
-        }
+    #gameOverScreen button:hover {
+      background-color: #00c8c8;
+    }
 
-        #gameOverScreen button:hover {
-            background-color: #333;
-        }
+    #boostBtn {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      font-size: 20px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      background: #ff5722;
+      color: white;
+      border: none;
+      z-index: 15;
+      display: none;
+    }
 
-        #boostBtn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            font-size: 20px;
-            padding: 12px 20px;
-            border-radius: 10px;
-            background: #ff5722;
-            color: white;
-            border: none;
-            display: none;
-            z-index: 15;
-        }
+    input[type="file"] {
+      margin-top: 15px;
+      color: white;
+    }
 
-        @media (max-width: 600px) {
-            #characterSelection .character img {
-                width: 80px;
-                height: 80px;
-            }
+    @keyframes fadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
 
-            #gameOverScreen button {
-                padding: 10px 20px;
-            }
+    @media (max-width: 600px) {
+      .character img {
+        width: 80px;
+        height: 80px;
+      }
 
-            #boostBtn {
-                display: block;
-            }
-        }
+      #boostBtn {
+        display: block;
+      }
 
-        @keyframes fadeIn {
-            0% { opacity: 0; }
-            100% { opacity: 1; }
-        }
-    </style>
+      #gameOverScreen h1 {
+        font-size: 36px;
+      }
+
+      #gameOverScreen p {
+        font-size: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div id="timer">Survive Time: 0s</div>
-    <div id="characterSelection">
-        <div id="chooseText">Choose Your Character</div>
-        <div>
-            <div class="character" onclick="selectCharacter('sheena.jfif')">
-                <img src="sheena.jfif" alt="Sheena">
-            </div>
-            <div class="character" onclick="selectCharacter('Trisha.jpg')">
-                <img src="Trisha.jpg" alt="Trisha">
-            </div>
-        </div>
-        <input type="file" id="characterUpload" accept="image/*" onchange="uploadCharacter()" style="margin-top: 20px;">
-        <label for="characterUpload" style="color: white; margin-top: 10px; font-size: 18px;">Upload Your Own Character</label>
+
+  <div id="timer">Survive Time: 0s</div>
+
+  <div id="characterSelection">
+    <div id="chooseText">Choose Your Character</div>
+    <div style="display:flex;">
+      <div class="character" onclick="selectCharacter('sheena.jfif')">
+        <img src="sheena.jfif" alt="Sheena">
+      </div>
+      <div class="character" onclick="selectCharacter('Trisha.jpg')">
+        <img src="Trisha.jpg" alt="Trisha">
+      </div>
     </div>
+    <input type="file" id="characterUpload" accept="image/*" onchange="uploadCharacter()">
+    <label for="characterUpload" style="color: white; font-size: 18px;">Upload Your Own Character</label>
+  </div>
 
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <button id="boostBtn" onclick="activateBoost()">Boost</button>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-    <div id="gameOverScreen">
-        <h1>Game Over!</h1>
-        <p>You were caught by the ghost!</p>
-        <button onclick="location.reload()">Play Again</button>
-    </div>
+  <button id="boostBtn" onclick="activateBoost()">Boost</button>
 
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
+  <div id="gameOverScreen">
+    <h1>Game Over!</h1>
+    <p>You were caught by the ghost!</p>
+    <button onclick="location.reload()">Play Again</button>
+  </div>
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas();
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-        const player = { x: 100, y: 100, size: 20, speed: 8, baseSpeed: 8 };
-        const ghost = { x: 400, y: 300, size: 30, speed: 2 };
-        const walls = [
-            { x: 200, y: 100, width: 400, height: 20 },
-            { x: 100, y: 300, width: 20, height: 200 },
-            { x: 600, y: 200, width: 20, height: 300 },
-            { x: 300, y: 450, width: 250, height: 20 }
-        ];
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
 
-        let gameOver = false;
-        let startTime;
-        let isBoosting = false;
-        let boostAvailable = true;
-        const boostDuration = 2000;
-        const boostCooldown = 5000;
+    const player = { x: 100, y: 100, size: 20, speed: 6, baseSpeed: 6 };
+    const ghost = { x: 400, y: 300, size: 30, speed: 2 };
+    const walls = [
+      { x: 200, y: 100, width: 400, height: 20 },
+      { x: 100, y: 300, width: 20, height: 200 },
+      { x: 600, y: 200, width: 20, height: 300 },
+      { x: 300, y: 450, width: 250, height: 20 }
+    ];
 
-        const ghostImg = new Image();
-        ghostImg.src = "khent.jpg";
-        const playerImg = new Image();
+    let gameOver = false;
+    let startTime;
+    let isBoosting = false;
+    let boostAvailable = true;
+    const boostDuration = 2000;
+    const boostCooldown = 5000;
 
-        function isCollidingWithWalls(x, y, size) {
-            for (const wall of walls) {
-                if (
-                    x + size > wall.x &&
-                    x - size < wall.x + wall.width &&
-                    y + size > wall.y &&
-                    y - size < wall.y + wall.height
-                ) return true;
-            }
-            return false;
-        }
+    const ghostImg = new Image();
+    ghostImg.src = "khent.jpg";
+    const playerImg = new Image();
 
-        function movePlayer(direction) {
-            let nextX = player.x;
-            let nextY = player.y;
+    const keys = {
+      ArrowUp: false,
+      ArrowDown: false,
+      ArrowLeft: false,
+      ArrowRight: false
+    };
 
-            if (direction === "up") nextY -= player.speed;
-            if (direction === "down") nextY += player.speed;
-            if (direction === "left") nextX -= player.speed;
-            if (direction === "right") nextX += player.speed;
+    function isCollidingWithWalls(x, y, size) {
+      for (const wall of walls) {
+        if (
+          x + size > wall.x &&
+          x - size < wall.x + wall.width &&
+          y + size > wall.y &&
+          y - size < wall.y + wall.height
+        ) return true;
+      }
+      return false;
+    }
 
-            if (!isCollidingWithWalls(nextX, player.y, player.size)) player.x = nextX;
-            if (!isCollidingWithWalls(player.x, nextY, player.size)) player.y = nextY;
-        }
+    function movePlayer(direction) {
+      let nextX = player.x;
+      let nextY = player.y;
 
-        function moveGhost() {
-            const dx = player.x - ghost.x;
-            const dy = player.y - ghost.y;
-            const dist = Math.hypot(dx, dy);
-            const timeSurvived = (Date.now() - startTime) / 1000;
-            ghost.speed = 2 + timeSurvived * 0.1;
+      if (direction === "up") nextY -= player.speed;
+      if (direction === "down") nextY += player.speed;
+      if (direction === "left") nextX -= player.speed;
+      if (direction === "right") nextX += player.speed;
 
-            if (dist > 0) {
-                ghost.x += (dx / dist) * ghost.speed;
-                ghost.y += (dy / dist) * ghost.speed;
-            }
-        }
+      if (!isCollidingWithWalls(nextX, player.y, player.size)) player.x = nextX;
+      if (!isCollidingWithWalls(player.x, nextY, player.size)) player.y = nextY;
+    }
 
-        function checkCollision() {
-            const dx = player.x - ghost.x;
-            const dy = player.y - ghost.y;
-            const distance = Math.hypot(dx, dy);
-            return distance < player.size + ghost.size;
-        }
+    function handlePlayerMovement() {
+      if (keys.ArrowUp) movePlayer("up");
+      if (keys.ArrowDown) movePlayer("down");
+      if (keys.ArrowLeft) movePlayer("left");
+      if (keys.ArrowRight) movePlayer("right");
+    }
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function moveGhost() {
+      const dx = player.x - ghost.x;
+      const dy = player.y - ghost.y;
+      const dist = Math.hypot(dx, dy);
+      const timeSurvived = (Date.now() - startTime) / 1000;
+      ghost.speed = 2 + timeSurvived * 0.1;
 
-            ctx.fillStyle = "#444";
-            for (const wall of walls) {
-                ctx.save();
-                ctx.shadowColor = "#aaa";
-                ctx.shadowBlur = 10;
-                ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
-                ctx.restore();
-            }
+      if (dist > 0) {
+        ghost.x += (dx / dist) * ghost.speed;
+        ghost.y += (dy / dist) * ghost.speed;
+      }
+    }
 
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, player.size, 0, 2 * Math.PI);
-            ctx.clip();
-            ctx.drawImage(playerImg, player.x - player.size, player.y - player.size, player.size * 2, player.size * 2);
-            ctx.restore();
+    function checkCollision() {
+      const dx = player.x - ghost.x;
+      const dy = player.y - ghost.y;
+      const distance = Math.hypot(dx, dy);
+      return distance < player.size + ghost.size;
+    }
 
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(ghost.x, ghost.y, ghost.size, 0, 2 * Math.PI);
-            ctx.clip();
-            ctx.drawImage(ghostImg, ghost.x - ghost.size, ghost.y - ghost.size, ghost.size * 2, ghost.size * 2);
-            ctx.restore();
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const timeSurvived = Math.floor((Date.now() - startTime) / 1000);
-            document.getElementById("timer").innerText = `Survive Time: ${timeSurvived}s`;
+      ctx.fillStyle = "#333";
+      for (const wall of walls) {
+        ctx.save();
+        ctx.shadowColor = "#0ff";
+        ctx.shadowBlur = 15;
+        ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+        ctx.restore();
+      }
 
-            if (checkCollision()) {
-                gameOver = true;
-                document.getElementById("gameOverScreen").style.display = "flex";
-            }
-        }
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.size, 0, 2 * Math.PI);
+      ctx.clip();
+      ctx.drawImage(playerImg, player.x - player.size, player.y - player.size, player.size * 2, player.size * 2);
+      ctx.restore();
 
-        function update() {
-            if (gameOver) return;
-            moveGhost();
-            draw();
-            requestAnimationFrame(update);
-        }
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ghost.x, ghost.y, ghost.size, 0, 2 * Math.PI);
+      ctx.clip();
+      ctx.drawImage(ghostImg, ghost.x - ghost.size, ghost.y - ghost.size, ghost.size * 2, ghost.size * 2);
+      ctx.restore();
 
-        function startGame() {
-            startTime = Date.now();
-            document.getElementById("characterSelection").style.display = "none";
-            document.getElementById("timer").style.display = "block";
-            update();
-        }
+      const timeSurvived = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById("timer").innerText = `Survive Time: ${timeSurvived}s`;
 
-        function selectCharacter(imageSrc) {
-            playerImg.src = imageSrc;
-            playerImg.onload = startGame;
-        }
+      if (checkCollision()) {
+        gameOver = true;
+        document.getElementById("gameOverScreen").style.display = "flex";
+      }
+    }
 
-        function uploadCharacter() {
-            const file = document.getElementById("characterUpload").files[0];
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                playerImg.src = event.target.result;
-                playerImg.onload = startGame;
-            };
-            reader.readAsDataURL(file);
-        }
+    function update() {
+      if (gameOver) return;
+      handlePlayerMovement();
+      moveGhost();
+      draw();
+      requestAnimationFrame(update);
+    }
 
-        function activateBoost() {
-            if (!boostAvailable || isBoosting) return;
+    function startGame() {
+      startTime = Date.now();
+      document.getElementById("characterSelection").style.display = "none";
+      document.getElementById("timer").style.display = "block";
+      update();
+    }
 
-            isBoosting = true;
-            boostAvailable = false;
-            player.speed *= 2;
+    function selectCharacter(imageSrc) {
+      playerImg.src = imageSrc;
+      playerImg.onload = startGame;
+    }
 
-            setTimeout(() => {
-                player.speed = player.baseSpeed;
-                isBoosting = false;
-            }, boostDuration);
+    function uploadCharacter() {
+      const file = document.getElementById("characterUpload").files[0];
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        playerImg.src = event.target.result;
+        playerImg.onload = startGame;
+      };
+      reader.readAsDataURL(file);
+    }
 
-            setTimeout(() => {
-                boostAvailable = true;
-            }, boostCooldown);
-        }
+    function activateBoost() {
+      if (!boostAvailable || isBoosting) return;
 
-        document.addEventListener("keydown", function(e) {
-            if (e.key === "ArrowUp") movePlayer("up");
-            if (e.key === "ArrowDown") movePlayer("down");
-            if (e.key === "ArrowLeft") movePlayer("left");
-            if (e.key === "ArrowRight") movePlayer("right");
-            if (e.code === "Space") activateBoost();
-        });
+      isBoosting = true;
+      boostAvailable = false;
+      player.speed *= 2;
 
-        // Mobile swipe controls
-        let touchStartX = 0;
-        let touchStartY = 0;
+      setTimeout(() => {
+        player.speed = player.baseSpeed;
+        isBoosting = false;
+      }, boostDuration);
 
-        canvas.addEventListener("touchstart", function(e) {
-            const touch = e.touches[0];
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
-        }, false);
+      setTimeout(() => {
+        boostAvailable = true;
+      }, boostCooldown);
+    }
 
-        canvas.addEventListener("touchend", function(e) {
-            const touch = e.changedTouches[0];
-            const touchEndX = touch.clientX;
-            const touchEndY = touch.clientY;
+    document.addEventListener("keydown", (e) => {
+      if (e.key in keys) keys[e.key] = true;
+      if (e.code === "Space") activateBoost();
+    });
 
-            const deltaX = touchEndX - touchStartX;
-            const deltaY = touchEndY - touchStartY;
+    document.addEventListener("keyup", (e) => {
+      if (e.key in keys) keys[e.key] = false;
+    });
 
-            if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                if (deltaX > 30) movePlayer("right");
-                else if (deltaX < -30) movePlayer("left");
-            } else {
-                if (deltaY > 30) movePlayer("down");
-                else if (deltaY < -30) movePlayer("up");
-            }
-        }, false);
-    </script>
+    // Swipe for mobile
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    canvas.addEventListener("touchstart", function (e) {
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    }, false);
+
+    canvas.addEventListener("touchend", function (e) {
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX > 30) keys.ArrowRight = true;
+        else if (deltaX < -30) keys.ArrowLeft = true;
+      } else {
+        if (deltaY > 30) keys.ArrowDown = true;
+        else if (deltaY < -30) keys.ArrowUp = true;
+      }
+
+      setTimeout(() => {
+        keys.ArrowUp = keys.ArrowDown = keys.ArrowLeft = keys.ArrowRight = false;
+      }, 100);
+    }, false);
+  </script>
 </body>
 </html>

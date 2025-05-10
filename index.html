@@ -119,9 +119,18 @@
             background-color: #333;
         }
 
-        @keyframes fadeIn {
-            0% { opacity: 0; }
-            100% { opacity: 1; }
+        #boostBtn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 20px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            background: #ff5722;
+            color: white;
+            border: none;
+            display: none;
+            z-index: 15;
         }
 
         @media (max-width: 600px) {
@@ -133,6 +142,15 @@
             #gameOverScreen button {
                 padding: 10px 20px;
             }
+
+            #boostBtn {
+                display: block;
+            }
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
@@ -151,7 +169,9 @@
         <input type="file" id="characterUpload" accept="image/*" onchange="uploadCharacter()" style="margin-top: 20px;">
         <label for="characterUpload" style="color: white; margin-top: 10px; font-size: 18px;">Upload Your Own Character</label>
     </div>
+
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <button id="boostBtn" onclick="activateBoost()">Boost</button>
 
     <div id="gameOverScreen">
         <h1>Game Over!</h1>
@@ -166,12 +186,11 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            ctx.fillStyle = "black";
         }
         window.addEventListener("resize", resizeCanvas);
         resizeCanvas();
 
-        const player = { x: 100, y: 100, size: 20, speed: 8 };
+        const player = { x: 100, y: 100, size: 20, speed: 8, baseSpeed: 8 };
         const ghost = { x: 400, y: 300, size: 30, speed: 2 };
         const walls = [
             { x: 200, y: 100, width: 400, height: 20 },
@@ -182,6 +201,11 @@
 
         let gameOver = false;
         let startTime;
+        let isBoosting = false;
+        let boostAvailable = true;
+        const boostDuration = 2000;
+        const boostCooldown = 5000;
+
         const ghostImg = new Image();
         ghostImg.src = "khent.jpg";
         const playerImg = new Image();
@@ -216,7 +240,7 @@
             const dy = player.y - ghost.y;
             const dist = Math.hypot(dx, dy);
             const timeSurvived = (Date.now() - startTime) / 1000;
-            ghost.speed = 2 + timeSurvived * 0.05;
+            ghost.speed = 2 + timeSurvived * 0.1;
 
             if (dist > 0) {
                 ghost.x += (dx / dist) * ghost.speed;
@@ -257,6 +281,9 @@
             ctx.drawImage(ghostImg, ghost.x - ghost.size, ghost.y - ghost.size, ghost.size * 2, ghost.size * 2);
             ctx.restore();
 
+            const timeSurvived = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById("timer").innerText = `Survive Time: ${timeSurvived}s`;
+
             if (checkCollision()) {
                 gameOver = true;
                 document.getElementById("gameOverScreen").style.display = "flex";
@@ -273,6 +300,7 @@
         function startGame() {
             startTime = Date.now();
             document.getElementById("characterSelection").style.display = "none";
+            document.getElementById("timer").style.display = "block";
             update();
         }
 
@@ -290,6 +318,31 @@
             };
             reader.readAsDataURL(file);
         }
+
+        function activateBoost() {
+            if (!boostAvailable || isBoosting) return;
+
+            isBoosting = true;
+            boostAvailable = false;
+            player.speed *= 2;
+
+            setTimeout(() => {
+                player.speed = player.baseSpeed;
+                isBoosting = false;
+            }, boostDuration);
+
+            setTimeout(() => {
+                boostAvailable = true;
+            }, boostCooldown);
+        }
+
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "ArrowUp") movePlayer("up");
+            if (e.key === "ArrowDown") movePlayer("down");
+            if (e.key === "ArrowLeft") movePlayer("left");
+            if (e.key === "ArrowRight") movePlayer("right");
+            if (e.code === "Space") activateBoost();
+        });
 
         // Mobile swipe controls
         let touchStartX = 0;

@@ -122,23 +122,65 @@
             background-color: #333;
         }
 
+        /* Button Controls */
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background-color: #444;
+            color: white;
+            border: 2px solid #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background-color: #333;
+        }
+
+        /* Mobile-specific controls */
+        #mobileControls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 15;
+        }
+
+        .mobile-control-btn {
+            width: 70px;
+            height: 70px;
+            background-color: #444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            border: 2px solid #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .mobile-control-btn:hover {
+            background-color: #333;
+        }
+
         /* Animations */
         @keyframes fadeIn {
             0% { opacity: 0; }
             100% { opacity: 1; }
-        }
-
-        /* Wall Styling */
-        .wall {
-            background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5));
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-            border-radius: 5px;
-            transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
-        }
-
-        .wall:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.8);
         }
 
         /* Mobile responsiveness */
@@ -150,6 +192,15 @@
 
             #gameOverScreen button {
                 padding: 10px 20px;
+            }
+
+            .control-btn {
+                padding: 8px 16px;
+            }
+
+            .mobile-control-btn {
+                width: 60px;
+                height: 60px;
             }
         }
     </style>
@@ -178,6 +229,22 @@
         <button onclick="location.reload()">Play Again</button>
     </div>
 
+    <!-- Controls for PC -->
+    <div id="controls">
+        <button class="control-btn" onclick="movePlayer('up')">Up</button>
+        <button class="control-btn" onclick="movePlayer('down')">Down</button>
+        <button class="control-btn" onclick="movePlayer('left')">Left</button>
+        <button class="control-btn" onclick="movePlayer('right')">Right</button>
+    </div>
+
+    <!-- Controls for Mobile -->
+    <div id="mobileControls">
+        <div class="mobile-control-btn" onclick="movePlayer('up')">↑</div>
+        <div class="mobile-control-btn" onclick="movePlayer('down')">↓</div>
+        <div class="mobile-control-btn" onclick="movePlayer('left')">←</div>
+        <div class="mobile-control-btn" onclick="movePlayer('right')">→</div>
+    </div>
+
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
@@ -200,47 +267,14 @@
             { x: 300, y: 450, width: 250, height: 20 }
         ];
 
-        let keys = {};
         let gameOver = false;
         let startTime;
         let imagesLoaded = 0;
-        let wallTimer = 0; // Timer for adding walls
-        let wallInterval = 10000; // 10 seconds interval
 
         const ghostImg = new Image();
         ghostImg.src = "khent.jpg";
 
         const playerImg = new Image();
-
-        // Mobile touch controls
-        let touchStartX, touchStartY;
-        canvas.addEventListener("touchstart", (e) => {
-            e.preventDefault();
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        });
-
-        canvas.addEventListener("touchmove", (e) => {
-            e.preventDefault();
-            const touchEndX = e.touches[0].clientX;
-            const touchEndY = e.touches[0].clientY;
-
-            const deltaX = touchEndX - touchStartX;
-            const deltaY = touchEndY - touchStartY;
-
-            player.x += deltaX / 10;
-            player.y += deltaY / 10;
-
-            touchStartX = touchEndX;
-            touchStartY = touchEndY;
-        });
-
-        // Keyboard and touch detection for PC vs. mobile
-        let isTouchDevice = 'ontouchstart' in document.documentElement;
-        if (!isTouchDevice) {
-            document.addEventListener("keydown", (e) => keys[e.key] = true);
-            document.addEventListener("keyup", (e) => keys[e.key] = false);
-        }
 
         function isCollidingWithWalls(x, y, size) {
             for (const wall of walls) {
@@ -254,15 +288,16 @@
             return false;
         }
 
-        function movePlayer() {
+        function movePlayer(direction) {
             let nextX = player.x;
             let nextY = player.y;
 
-            if (keys["ArrowUp"]) nextY -= player.speed;
-            if (keys["ArrowDown"]) nextY += player.speed;
-            if (keys["ArrowLeft"]) nextX -= player.speed;
-            if (keys["ArrowRight"]) nextX += player.speed;
+            if (direction === "up") nextY -= player.speed;
+            if (direction === "down") nextY += player.speed;
+            if (direction === "left") nextX -= player.speed;
+            if (direction === "right") nextX += player.speed;
 
+            // Prevent player from passing through walls
             if (!isCollidingWithWalls(nextX, player.y, player.size)) player.x = nextX;
             if (!isCollidingWithWalls(player.x, nextY, player.size)) player.y = nextY;
         }
@@ -318,7 +353,6 @@
         function update() {
             if (gameOver) return;
 
-            movePlayer();
             moveGhost();
             draw();
             requestAnimationFrame(update);
@@ -327,6 +361,8 @@
         function startGame() {
             startTime = Date.now();
             document.getElementById("characterSelection").style.display = "none";
+            document.getElementById("controls").style.display = "flex";
+            document.getElementById("mobileControls").style.display = "flex";
             update();
         }
 
@@ -344,19 +380,6 @@
             };
             reader.readAsDataURL(file);
         }
-
-        function createWall() {
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height;
-            const width = Math.random() * 150 + 50;
-            const height = Math.random() * 150 + 50;
-            walls.push({ x, y, width, height });
-        }
-
-        // Timer for wall creation every 10 seconds
-        setInterval(() => {
-            if (!gameOver) createWall();
-        }, wallInterval);
     </script>
 </body>
 </html>
